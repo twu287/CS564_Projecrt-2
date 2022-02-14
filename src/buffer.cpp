@@ -54,7 +54,7 @@ void BufMgr::allocBuf(FrameId &frame)
       }
       else if (bufDescTable[clockHand].pinCnt != 0)
       {
-        counter++;
+        cnt++;
         advanceClock();
       }
       else if (bufDescTable[clockHand].pinCnt == 0 && bufDescTable[clockHand].dirty == true)
