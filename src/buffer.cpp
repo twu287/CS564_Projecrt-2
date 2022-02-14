@@ -40,13 +40,64 @@ BufMgr::BufMgr(std::uint32_t bufs)
 
 void BufMgr::advanceClock() {}
 
-void BufMgr::allocBuf(FrameId& frame) {}
+void BufMgr::allocBuf(FrameId &frame)
+{
+  int cnt = 0;
+  for (int i = cnt; i <= numBufs; i++)
+  {
+    if (bufDescTable[clockHand].valid == true)
+    {
+      if (bufDescTable[clockHand].refbit == true)
+      {
+        bufDescTable[clockHand].refbit = false;
+        advanceClock();
+      }
+      else if (bufDescTable[clockHand].pinCnt != 0)
+      {
+        counter++;
+        advanceClock();
+      }
+      else if (bufDescTable[clockHand].pinCnt == 0 && bufDescTable[clockHand].dirty == true)
+      {
+        flushFile(bufDescTable[clockHand].file);
+        frame = clockHand;
+        return;
+      }
+      else if (bufDescTable[clockHand].pinCnt == 0 && bufDescTable[clockHand].dirty == false)
+      {
+        hashTable->remove(bufDescTable[clockHand].file, bufDescTable[clockHand].pageNo);
+        frame = clockHand;
+        return;
+      }
+    }
+    else
+    {
+      frame = clockHand;
+      return;
+    }
+  }
+}
 
 void BufMgr::readPage(File& file, const PageId pageNo, Page*& page) {}
 
 void BufMgr::unPinPage(File& file, const PageId pageNo, const bool dirty) {}
 
-void BufMgr::allocPage(File& file, PageId& pageNo, Page*& page) {}
+void BufMgr::allocPage(File &file, PageId &pageNo, Page *&page)
+{
+
+  FrameId frameNumber;
+  allocBuf(frameNumber);
+  Page *tempPage = file->allocatePage();
+  bufPool[frameNumber] = tempPage;      
+  page = &bufPool[frameNumber];
+  pageNo = page->page_number();
+    
+  bufDescTable[frameNumber].Set(file, pageNo);
+
+
+  hashTable->insert(file, pageNo, frameNumber);
+    
+}
 
 void BufMgr::flushFile(File& file) {}
 
