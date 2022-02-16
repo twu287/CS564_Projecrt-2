@@ -39,7 +39,8 @@ BufMgr::BufMgr(std::uint32_t bufs)
 }
 
 void BufMgr::advanceClock() {
-  numBufs = (clockHand++)%numBufs;
+  clockHand = (clockHand+1);
+  clockHand = clockHand % numBufs;
 }
 
 void BufMgr::allocBuf(FrameId &frame)
@@ -99,35 +100,25 @@ void BufMgr::readPage(File& file, const PageId pageNo, Page*& page) {
 }
 
 void BufMgr::unPinPage(File& file, const PageId pageNo, const bool dirty) {
-
-        //should use hashtable to check?
-    bool exist = false;
     int i;
-   
     for (i = 0; i < bufPool.size(); i++) {
       if(bufPool[i].page_number() == pageNo) {
-        exist = true;
-        break;
+        throw PageNotPinnedException(bufDescTable[i].file.filename(), bufDescTable[i].pageNo, bufDescTable[i].frameNo); // const std::string &nameIn, PageId pageNoIn,FrameId frameNoIn
+      }
+      if(i == bufPool.size() - 1) {
+        return;
       }
     }
+      
 
-    if (exist) 
-      throw PageNotPinnedException(bufDescTable[i].file.filename(), bufDescTable[i].pageNo, bufDescTable[i].frameNo); // const std::string &nameIn, PageId pageNoIn,FrameId frameNoIn
-
+  if(bufDescTable[i].pinCnt == 0) {
+    throw PageNotPinnedException(bufDescTable[i].file.filename(), bufDescTable[i].pageNo, bufDescTable[i].frameNo);
+  }
   
-  if (bufDescTable[i].pinCnt > 0 && !dirty ) {
-    bufDescTable[i].pinCnt --;
+  if (dirty) {
+    bufDescTable[i].dirty = true;
   }
-
-  else if (bufDescTable[i].pinCnt > 0 && dirty) {
-    bufDescTable[i].pinCnt --;
-    bufDescTable[i].dirty = false;
-  }
-
-  else {
-    throw PageNotPinnedException(bufDescTable[i].file.filename(), bufDescTable[i].pageNo, bufDescTable[i].frameNo);;
-  }
-    
+  bufDescTable[i].pinCnt--;
 }
 
 void BufMgr::allocPage(File &file, PageId &pageNo, Page *&page)
