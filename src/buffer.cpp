@@ -39,7 +39,7 @@ BufMgr::BufMgr(std::uint32_t bufs)
 }
 
 void BufMgr::advanceClock() {
-  (clockHand++)%numBufs;
+  numBufs = (clockHand++)%numBufs;
 }
 
 void BufMgr::allocBuf(FrameId &frame)
@@ -181,7 +181,7 @@ void BufMgr::disposePage(File& file, const PageId PageNo) {
   FrameId id;
   try{
     hashTable.lookup(file, PageNo, id);  
-    bufPool[id] = NULL;
+    //bufPool[id] = NULL;
     bufDescTable[id].clear();
     hashTable.remove(file, PageNo);  
     file.deletePage(PageNo);
