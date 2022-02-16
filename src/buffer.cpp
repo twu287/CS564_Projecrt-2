@@ -48,9 +48,9 @@ void BufMgr::allocBuf(FrameId &frame)
   int cnt = 0;
   for (int i = cnt; i <= numBufs; i++)
   {
-    if (bufDescTable[clockHand].valid == true)
+    if (bufDescTable[clockHand].valid)
     {
-      if (bufDescTable[clockHand].refbit == true)
+      if (bufDescTable[clockHand].refbit)
       {
         bufDescTable[clockHand].refbit = false;
         advanceClock();
@@ -60,13 +60,13 @@ void BufMgr::allocBuf(FrameId &frame)
         cnt++;
         advanceClock();
       }
-      else if (bufDescTable[clockHand].pinCnt == 0 && bufDescTable[clockHand].dirty == true)
+      else if (bufDescTable[clockHand].pinCnt == 0 && bufDescTable[clockHand].dirty)
       {
         flushFile(bufDescTable[clockHand].file);
         frame = clockHand;
         return;
       }
-      else if (bufDescTable[clockHand].pinCnt == 0 && bufDescTable[clockHand].dirty == false)
+      else if (bufDescTable[clockHand].pinCnt == 0 && !bufDescTable[clockHand].dirty)
       {
         hashTable.remove(bufDescTable[clockHand].file, bufDescTable[clockHand].pageNo);
         frame = clockHand;
@@ -154,8 +154,8 @@ void BufMgr::flushFile(File& file) {
         throw BadBufferException(bufDescTable[i].frameNo, bufDescTable[i].dirty, bufDescTable[i].valid, bufDescTable[i].refbit);
       }
       
-      if(bufDescTable[i].dirty) { //(a) if the page is dirty, call file.writePage() to flush the page to disk and then set the dirty bit for the page to false.
-        file.writePage(file.readPage(bufDescTable[i].pageNo));
+      if(bufDescTable[i].dirty) { //(a) if the page is dirty, call file.writePage() to flush the page to disk andInvalidRecordExceptionInvalidRecordExceptionInvalidRecordExceptionInvalidRecordException then set the dirty bit for the page to false.
+        file.writePage(bufPool[i]);
         //file.writePage(bufDescTable[i].pageNo, file.readPage(bufDescTable[i].pageNo));
         bufDescTable[i].dirty = false;
       } 
