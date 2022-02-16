@@ -79,6 +79,7 @@ void BufMgr::allocBuf(FrameId &frame)
       return;
     }
   }
+  throw BufferExceededException();
 }
 
 void BufMgr::readPage(File& file, const PageId pageNo, Page*& page) {
