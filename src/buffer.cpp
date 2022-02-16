@@ -81,21 +81,36 @@ void BufMgr::allocBuf(FrameId &frame)
   }
   throw BufferExceededException();
 }
-
+/**
+ * read the page and need to check if the page is existed in buffer pool already, if yes, just update the pinCount and refbit
+ * if not, allocate a new frame, save it in buffer pool and update the hashtable
+ *
+ * @param file   	File object
+ * @param PageNo    Page number
+ * @param page  	page object need to return the page pointer to the place where page saved in buffer pointer
+ */
 void BufMgr::readPage(File& file, const PageId pageNo, Page*& page) {
-  FrameId id;
+  FrameId id;  
   try{
+    // look up the page is existed in buffer pool or not
     hashTable.lookup(file, pageNo, id);
+    // exist in buffer pool, increment pinCnt and set refbit true  
     bufDescTable[id].pinCnt++;
     bufDescTable[id].refbit = true;
+    //return page pointer to the page in buffer pool  
     page = &bufPool[id];
   }
+  // if the page isn't existed in buffe pool, allocate it with the new frame
   catch (HashNotFoundException hnfe){
+    //get the new frame  
     allocBuf(id);
     Page newPage = file.readPage(pageNo);
+    //add it in buffer pool  
     bufPool[id] = newPage;
+    //update the hashtable
     hashTable.insert(file, pageNo, id);
     bufDescTable[id].Set(file, pageNo);
+    //return page pointer to the page in buffer pool  
     page = &bufPool[id];
   }
 }
@@ -162,16 +177,22 @@ void BufMgr::flushFile(File& file) {
     }
   }   
 }
-
+/**
+ * delete the page from buffer pool and remove it from file
+ *
+ * @param file    File object
+ * @param PageNo  Page number
+ */
 void BufMgr::disposePage(File& file, const PageId PageNo) {
   FrameId id;
   try{
+    // look up the page is existed in buffer pool or not  
     hashTable.lookup(file, PageNo, id);  
-    //bufPool[id] = NULL;
     bufDescTable[id].clear();
     hashTable.remove(file, PageNo);  
     file.deletePage(PageNo);
   }
+  //all pages are free and cleaned  
   catch (HashNotFoundException hnfe){
     printf("deleted page is not existed");
   }
