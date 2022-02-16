@@ -67,7 +67,7 @@ void BufMgr::allocBuf(FrameId &frame)
       }
       else if (bufDescTable[clockHand].pinCnt == 0 && bufDescTable[clockHand].dirty == false)
       {
-        hashTable->remove(bufDescTable[clockHand].file, bufDescTable[clockHand].pageNo);
+        hashTable.remove(bufDescTable[clockHand].file, bufDescTable[clockHand].pageNo);
         frame = clockHand;
         return;
       }
@@ -135,7 +135,7 @@ void BufMgr::allocPage(File &file, PageId &pageNo, Page *&page)
 
   FrameId frameNumber;
   allocBuf(frameNumber);
-  Page *tempPage = file->allocatePage();
+  Page tempPage = file.allocatePage();
   bufPool[frameNumber] = tempPage;      
   page = &bufPool[frameNumber];
   pageNo = page->page_number();
@@ -143,7 +143,7 @@ void BufMgr::allocPage(File &file, PageId &pageNo, Page *&page)
   bufDescTable[frameNumber].Set(file, pageNo);
 
 
-  hashTable->insert(file, pageNo, frameNumber);
+  hashTable.insert(file, pageNo, frameNumber);
     
 }
 
@@ -180,11 +180,11 @@ void BufMgr::flushFile(File& file) {
 void BufMgr::disposePage(File& file, const PageId PageNo) {
   FrameId id;
   try{
-    hashTable.lookup(file, pageNo, id);  
+    hashTable.lookup(file, PageNo, id);  
     bufPool[id] = NULL;
     bufDescTable[id].clear();
-    hashTable.remove(file, pageNo);  
-    file.deletePage(pageNo);
+    hashTable.remove(file, PageNo);  
+    file.deletePage(PageNo);
   }
   catch (HashNotFoundException hnfe){
     printf("deleted page is not existed");
