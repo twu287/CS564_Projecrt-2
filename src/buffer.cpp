@@ -100,25 +100,19 @@ void BufMgr::readPage(File& file, const PageId pageNo, Page*& page) {
 }
 
 void BufMgr::unPinPage(File& file, const PageId pageNo, const bool dirty) {
-    int i;
-    for (i = 0; i < bufPool.size(); i++) {
-      if(bufPool[i].page_number() == pageNo) {
-        break;
-      }
-      if(i == bufPool.size() - 1) {
-        return;
-      }
+FrameId id;
+    try{
+        hashTable.lookup(file, pageNo, id);
+        if (bufDescTable[id].pinCnt == 0){
+            throw PageNotPinnedException(file.filename(), pageNo, id);
+        }
+        bufDescTable[id].pinCnt--;
+        if (dirty) {
+          bufDescTable[id].dirty = true;
+        }
     }
-      
-
-  if(bufDescTable[i].pinCnt == 0) {
-    throw PageNotPinnedException(bufDescTable[i].file.filename(), bufDescTable[i].pageNo, bufDescTable[i].frameNo);
-  }
-  
-  if (dirty) {
-    bufDescTable[i].dirty = true;
-  }
-  bufDescTable[i].pinCnt--;
+    catch (HashNotFoundException e){
+    }
 }
 
 void BufMgr::allocPage(File &file, PageId &pageNo, Page *&page)
