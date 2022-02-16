@@ -83,7 +83,7 @@ void BufMgr::allocBuf(FrameId &frame)
 void BufMgr::readPage(File& file, const PageId pageNo, Page*& page) {
   FrameId id;
   try{
-    BufHashTbl::lookup(file, pageNo, id);
+    hashTable.lookup(file, pageNo, id);
     bufDescTable[id].pinCnt++;
     bufDescTable[id].refbit = true;
     page = &bufPool[id];
@@ -92,7 +92,7 @@ void BufMgr::readPage(File& file, const PageId pageNo, Page*& page) {
     allocBuf(id);
     Page newPage = file.readPage(pageNo);
     bufPool[id] = newPage;
-    BufHashTbl::insert(file, pageNo, id);
+    hashTable.insert(file, pageNo, id);
     bufDescTable[id].Set(file, pageNo);
     page = &bufPool[id];
   }
@@ -180,11 +180,11 @@ void BufMgr::flushFile(File& file) {
 void BufMgr::disposePage(File& file, const PageId PageNo) {
   FrameId id;
   try{
-    BufHashTbl::lookup(file, pageNo, id);  
+    hashTable.lookup(file, pageNo, id);  
     bufPool[id] = NULL;
     bufDescTable[id].clear();
-    BufHashTbl::remove(file, pageNo);  
-    File::deletePage(pageNo);
+    hashTable.remove(file, pageNo);  
+    file.deletePage(pageNo);
   }
   catch (HashNotFoundException hnfe){
     printf("deleted page is not existed");
