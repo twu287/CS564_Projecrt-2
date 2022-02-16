@@ -103,7 +103,7 @@ void BufMgr::unPinPage(File& file, const PageId pageNo, const bool dirty) {
     int i;
     for (i = 0; i < bufPool.size(); i++) {
       if(bufPool[i].page_number() == pageNo) {
-        throw PageNotPinnedException(bufDescTable[i].file.filename(), bufDescTable[i].pageNo, bufDescTable[i].frameNo); // const std::string &nameIn, PageId pageNoIn,FrameId frameNoIn
+        break;
       }
       if(i == bufPool.size() - 1) {
         return;
