@@ -38,8 +38,13 @@ BufMgr::BufMgr(std::uint32_t bufs)
   clockHand = bufs - 1;
 }
 
+/**
+ * @brief Advance clock to next frame in the buffer pool.
+ *
+ */
 void BufMgr::advanceClock() {
   clockHand = (clockHand+1);
+  // make it circlular
   clockHand = clockHand % numBufs;
 }
 
@@ -82,7 +87,7 @@ void BufMgr::allocBuf(FrameId &frame)
   throw BufferExceededException();
 }
 /**
- * read the page and need to check if the page is existed in buffer pool already, if yes, just update the pinCount and refbit
+ * @brief the page and need to check if the page is existed in buffer pool already, if yes, just update the pinCount and refbit
  * if not, allocate a new frame, save it in buffer pool and update the hashtable
  *
  * @param file   	File object
@@ -115,14 +120,27 @@ void BufMgr::readPage(File& file, const PageId pageNo, Page*& page) {
   }
 }
 
+/**
+ * @brief Find the matched page and uppin it (decrement pin count)
+ *
+ * @param file    File object
+ * @param pageNo  Page no to be searched
+ * @param dirty   a bool to define the if it is a dirty page or not 
+ * 
+ * @throws PageNotPinnedException when a page which is expected to be pinned in the buffer pool is found to be not pinned
+ * @throws HashNotFoundException when the page is not found
+ */
 void BufMgr::unPinPage(File& file, const PageId pageNo, const bool dirty) {
 FrameId id;
+    //search the page by pageNo
     try{
         hashTable.lookup(file, pageNo, id);
+        //if pinCnt is 0, throw exception
         if (bufDescTable[id].pinCnt == 0){
             throw PageNotPinnedException(file.filename(), pageNo, id);
         }
         bufDescTable[id].pinCnt--;
+        //if it's a dirty page, make dirty to be true
         if (dirty) {
           bufDescTable[id].dirty = true;
         }
@@ -130,6 +148,7 @@ FrameId id;
     catch (HashNotFoundException e){
     }
 }
+
 
 void BufMgr::allocPage(File &file, PageId &pageNo, Page *&page)
 {
@@ -147,38 +166,47 @@ void BufMgr::allocPage(File &file, PageId &pageNo, Page *&page)
   hashTable.insert(file, pageNo, frameNumber);
     
 }
-
+/**
+ * @brief Scan bufTable for pages belonging to the file, and clear them from bulpool.
+ *
+ * @param file    File object
+ * 
+ * @throws PagePinnedException if some page of the file is pinned.
+ * @throws BadBufferException if an invalid page belonging to the file is encountered.
+ */
 void BufMgr::flushFile(File& file) {
       
     int i;
-  
-  for (i = 0; i < bufPool.size(); i++) {
-    
-    if(bufDescTable[i].file.filename() == file.filename()) {
+  //search if the pages are in the bulPool
+  for (i = 0; i < bufPool.size(); i++) { 
 
-      if(bufDescTable[i].pinCnt > 0) { //Throws PagePinnedException if some page of the file is pinned.
+    if(bufDescTable[i].file.filename() == file.filename()) {
+      // if pinCnt of page not equal to 0, can't flush it, throw exception
+      if(bufDescTable[i].pinCnt > 0) { 
         throw PagePinnedException(bufDescTable[i].file.filename(), bufDescTable[i].pageNo, bufDescTable[i].frameNo);
       }
-
-        if(!bufDescTable[i].valid) { //Throws BadBufferException if an invalid page belonging to the file is encountered.
+        //if page is not valid, throw exception
+        if(!bufDescTable[i].valid) { 
         throw BadBufferException(bufDescTable[i].frameNo, bufDescTable[i].dirty, bufDescTable[i].valid, bufDescTable[i].refbit);
       }
-      
-      if(bufDescTable[i].dirty) { //(a) if the page is dirty, call file.writePage() to flush the page to disk andInvalidRecordExceptionInvalidRecordExceptionInvalidRecordExceptionInvalidRecordException then set the dirty bit for the page to false.
+
+      //if the page is dirty, flush the page to disk
+      if(bufDescTable[i].dirty) { 
         file.writePage(bufPool[i]);
-        //file.writePage(bufDescTable[i].pageNo, file.readPage(bufDescTable[i].pageNo));
         bufDescTable[i].dirty = false;
       } 
 
-      hashTable.remove(file, bufDescTable[i].pageNo); //(b) remove the page from the hashtable (whether the page is clean or dirty)
+      //remove the page from the hashtable
+      hashTable.remove(file, bufDescTable[i].pageNo);
 
-      bufDescTable[i].clear(); //(c) invoke the Clear() method of BufDesc for the page frame.
+      //clear it from BuDesc
+      bufDescTable[i].clear();
 
     }
   }   
 }
 /**
- * delete the page from buffer pool and remove it from file
+ * @brief the page from buffer pool and remove it from file
  *
  * @param file    File object
  * @param PageNo  Page number
