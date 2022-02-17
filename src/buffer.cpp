@@ -48,38 +48,31 @@ void BufMgr::advanceClock() {
   clockHand = clockHand % numBufs;
 }
 
+/**
+ * @brief Allocates the buffer
+ * 
+ * @param frame is the frame to allocate
+ */
 void BufMgr::allocBuf(FrameId &frame)
 {
   int cnt = 0;
   for (int i = cnt; i <= numBufs; i++)
   {
-    if (bufDescTable[clockHand].valid)
-    {
-      if (bufDescTable[clockHand].refbit)
-      {
-        bufDescTable[clockHand].refbit = false;
-        advanceClock();
-      }
-      else if (bufDescTable[clockHand].pinCnt != 0)
-      {
-        cnt++;
-        advanceClock();
-      }
-      else if (bufDescTable[clockHand].pinCnt == 0 && bufDescTable[clockHand].dirty)
-      {
-        flushFile(bufDescTable[clockHand].file);
-        frame = clockHand;
-        return;
-      }
-      else if (bufDescTable[clockHand].pinCnt == 0 && !bufDescTable[clockHand].dirty)
-      {
-        hashTable.remove(bufDescTable[clockHand].file, bufDescTable[clockHand].pageNo);
-        frame = clockHand;
-        return;
-      }
-    }
-    else
-    {
+    if(bufDescTable[clockHand].valid && bufDescTable[clockHand].refbit) {
+      bufDescTable[clockHand].refbit = false; //set it to false
+      advanceClock();
+    } else if (bufDescTable[clockHand].valid && bufDescTable[clockHand].pinCnt != 0) { //check two conditions
+      advanceClock();
+      cnt++;
+    } else if (bufDescTable[clockHand].valid && bufDescTable[clockHand].pinCnt == 0 && bufDescTable[clockHand].dirty) {
+      frame = clockHand;
+      flushFile(bufDescTable[clockHand].file);
+      return;
+    } else if (bufDescTable[clockHand].valid && bufDescTable[clockHand].pinCnt == 0 && !bufDescTable[clockHand].dirty) { //check dirty bit
+      hashTable.remove(bufDescTable[clockHand].file, bufDescTable[clockHand].pageNo);
+      frame = clockHand;
+      return;
+    } else {
       frame = clockHand;
       return;
     }
@@ -149,21 +142,27 @@ FrameId id;
     }
 }
 
-
+/**
+ * @brief Allocates a page
+ * 
+ * @param file is the file to allocate
+ * @param pageNo is the page number
+ * @param page is the page data
+ */
 void BufMgr::allocPage(File &file, PageId &pageNo, Page *&page)
 {
 
-  FrameId frameNumber;
-  allocBuf(frameNumber);
-  Page tempPage = file.allocatePage();
-  bufPool[frameNumber] = tempPage;      
-  page = &bufPool[frameNumber];
-  pageNo = page->page_number();
+  FrameId frameID;
+  allocBuf(frameID); //allocates the buffer
+  Page tempPage = file.allocatePage(); //gets a page
+  bufPool[frameID] = tempPage;      
+  page = &bufPool[frameID];
+  pageNo = page->page_number(); //fetches the page number
     
-  bufDescTable[frameNumber].Set(file, pageNo);
+  bufDescTable[frameID].Set(file, pageNo);
 
 
-  hashTable.insert(file, pageNo, frameNumber);
+  hashTable.insert(file, pageNo, frameID); //inserts into the hash table
     
 }
 /**
